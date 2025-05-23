@@ -2,19 +2,27 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Maximize, Minimize, Feather, Star, TrendingUp } from 'lucide-react';
+import { Maximize, Minimize, Feather, Star, TrendingUp, Menu } from 'lucide-react';
 import type { AppStats } from '@/lib/types';
 
 interface AppHeaderProps {
   isFullScreen: boolean;
   onFullScreenToggle: () => void;
-  appStats: AppStats; // Add appStats
+  appStats: AppStats;
+  showMobileMenuButton?: boolean;
+  onMobileMenuToggle?: () => void;
 }
 
-export function AppHeader({ isFullScreen, onFullScreenToggle, appStats }: AppHeaderProps) {
+export function AppHeader({ isFullScreen, onFullScreenToggle, appStats, showMobileMenuButton, onMobileMenuToggle }: AppHeaderProps) {
   return (
     <header className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
       <div className="flex items-center">
+        {showMobileMenuButton && (
+          <Button variant="ghost" size="icon" onClick={onMobileMenuToggle} className="md:hidden mr-2">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Open Menu</span>
+          </Button>
+        )}
         <Feather className="h-8 w-8 text-primary" />
         <h1 className="text-2xl font-bold ml-2">ZenWrite</h1>
       </div>

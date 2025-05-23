@@ -10,11 +10,13 @@ import { ProgressVis } from '@/components/zenwrite/progress-vis';
 import { BadgeSystem } from '@/components/zenwrite/badge-system';
 import { AiPaceTool } from '@/components/zenwrite/ai-pace-tool';
 import { FocusSettings } from '@/components/zenwrite/focus-settings';
-import { TypographySettings } from '@/components/zenwrite/TypographySettings'; // Corrected Import Path
+import { TypographySettings } from '@/components/zenwrite/TypographySettings';
 import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState, TypographySettingsState } from '@/lib/types';
 import { BADGES_CONFIG } from '@/lib/badge-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DEFAULT_POMODORO_CONFIG: PomodoroConfig = {
   workDuration: 25 * 60,
@@ -32,21 +34,20 @@ const INITIAL_FOCUS_SETTINGS: FocusSettingsState = {
 };
 
 const INITIAL_TYPOGRAPHY_SETTINGS: TypographySettingsState = {
-  fontFamily: 'var(--font-geist-sans)', // Default to Geist Sans
-  fontSize: 16, // Default font size in px
+  fontFamily: 'var(--font-geist-sans)',
+  fontSize: 16,
 };
 
-const XP_FOR_WORD = 0.1; // 1 XP per 10 words
+const XP_FOR_WORD = 0.1;
 const XP_FOR_POMODORO_COMPLETION = 50;
 const XP_FOR_AI_TOOL_USE = 20;
-// Total XP needed to reach level (index + 1). Level 1 = 0 XP, Level 2 = 100 XP total, etc.
 export const LEVEL_XP_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 4000, 5000, 7500, 10000];
 
 
 export default function ZenWritePage() {
   const [text, setText] = useState('');
   const [wordGoal, setWordGoal] = useState(0);
-  const [timeGoal, setTimeGoal] = useState(0); // in minutes
+  const [timeGoal, setTimeGoal] = useState(0);
 
   const [pomodoroState, setPomodoroState] = useState<PomodoroState>({
     isRunning: false,
@@ -75,6 +76,7 @@ export default function ZenWritePage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const writingSessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previousWordCountRef = useRef(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNextInterval = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -124,11 +126,9 @@ export default function ZenWritePage() {
         currentInterval: nextInterval,
         cycleCount: newCycleCount,
     }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG]);
+  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast]);
 
 
-  // Update word count and award XP for writing
   useEffect(() => {
     const words = text.trim().split(/\s+/).filter(Boolean);
     const newWordCount = words.length;
@@ -146,7 +146,6 @@ export default function ZenWritePage() {
     previousWordCountRef.current = newWordCount;
   }, [text]);
 
-  // Level up logic
   useEffect(() => {
     const currentLevel = appStats.level;
     if (currentLevel > 0 && currentLevel < LEVEL_XP_THRESHOLDS.length) {
@@ -163,8 +162,6 @@ export default function ZenWritePage() {
     }
   }, [appStats.xp, appStats.level, toast]);
 
-
-  // Update writing time today
   useEffect(() => {
     if (pomodoroState.isRunning && pomodoroState.currentInterval === 'work') {
       if (writingSessionTimerRef.current) clearInterval(writingSessionTimerRef.current);
@@ -179,7 +176,6 @@ export default function ZenWritePage() {
     };
   }, [pomodoroState.isRunning, pomodoroState.currentInterval]);
 
-  // Check for badge achievements
   useEffect(() => {
     const newBadges = badges.map(badge => {
       if (!badge.achieved && badge.criteria(appStats)) {
@@ -197,7 +193,6 @@ export default function ZenWritePage() {
     }
   }, [appStats, badges, toast]); 
 
-  // Pomodoro timer logic
   useEffect(() => {
     if (pomodoroState.isRunning && pomodoroState.timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -246,14 +241,11 @@ export default function ZenWritePage() {
     setTypographySettings(prev => ({ ...prev, ...newSettings }));
   };
 
-
-  // Dynamic Lighting Effect
   useEffect(() => {
     if (!focusSettings.enableDynamicLighting) {
       document.documentElement.classList.remove('theme-day', 'theme-dusk');
       return;
     }
-
     const hour = new Date().getHours();
     if (hour >= 6 && hour < 18) { 
       document.documentElement.classList.add('theme-day');
@@ -266,54 +258,83 @@ export default function ZenWritePage() {
     }
   }, [focusSettings.enableDynamicLighting]);
 
-
   const isWritingDisabled = pomodoroState.isRunning && pomodoroState.currentInterval !== 'work';
   const isDeepWorkActive = focusSettings.enableDeepWorkMode && pomodoroState.isRunning && pomodoroState.currentInterval === 'work';
-  const showSidebar = !isFullScreen && !isDeepWorkActive;
+  
+  const showDesktopSidebar = !isFullScreen && !isDeepWorkActive;
+  const showMobileMenuButtonInHeader = !isFullScreen && !isDeepWorkActive;
+
+  const SidebarItems = () => (
+    <>
+      <CustomFocus
+        wordGoal={wordGoal}
+        timeGoal={timeGoal}
+        onSetWordGoal={handleSetWordGoal}
+        onSetTimeGoal={handleSetTimeGoal}
+        disabled={pomodoroState.isRunning}
+      />
+      <Writeodoro
+        pomodoroState={pomodoroState}
+        pomodoroConfig={DEFAULT_POMODORO_CONFIG}
+        onStart={handlePomodoroStart}
+        onPause={handlePomodoroPause}
+        onReset={handlePomodoroReset}
+        onSkip={handlePomodoroSkip}
+        focusSettings={focusSettings}
+        currentText={text}
+      />
+      <AiPaceTool 
+        currentText={text} 
+        disabled={isWritingDisabled}
+        focusSettings={focusSettings}
+        onSuccessfulAiAction={awardXpForAiTool}
+      />
+      <TypographySettings settings={typographySettings} onSettingsChange={handleTypographyChange} />
+      <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+    </>
+  );
 
   return (
-    <div className={cn('flex flex-col min-h-screen transition-all duration-300', isFullScreen ? 'bg-background' : 'bg-background')}>
-      {!isFullScreen && <AppHeader isFullScreen={isFullScreen} onFullScreenToggle={toggleFullScreen} appStats={appStats} />}
+    <div className={cn('flex flex-col min-h-screen transition-all duration-300 bg-background')}>
+      {!isFullScreen && (
+          <AppHeader 
+              isFullScreen={isFullScreen} 
+              onFullScreenToggle={toggleFullScreen} 
+              appStats={appStats}
+              showMobileMenuButton={showMobileMenuButtonInHeader}
+              onMobileMenuToggle={() => setIsMobileMenuOpen(true)}
+          />
+      )}
       
       <div 
         className={cn(
-            'flex-grow w-full max-w-7xl mx-auto transition-all duration-300', 
-            isFullScreen ? 'p-0' : 'p-4 md:p-6 grid md:grid-cols-12 gap-6'
+            'flex-grow w-full max-w-7xl mx-auto transition-all duration-300 flex flex-col md:flex-row', 
+            isFullScreen ? 'p-0' : 'p-4 md:p-6 gap-6'
         )}
       >
-        {showSidebar && (
-          <aside className="md:col-span-4 lg:col-span-3 space-y-6 flex flex-col">
-            <CustomFocus
-              wordGoal={wordGoal}
-              timeGoal={timeGoal}
-              onSetWordGoal={handleSetWordGoal}
-              onSetTimeGoal={handleSetTimeGoal}
-              disabled={pomodoroState.isRunning}
-            />
-            <Writeodoro
-              pomodoroState={pomodoroState}
-              pomodoroConfig={DEFAULT_POMODORO_CONFIG}
-              onStart={handlePomodoroStart}
-              onPause={handlePomodoroPause}
-              onReset={handlePomodoroReset}
-              onSkip={handlePomodoroSkip}
-              focusSettings={focusSettings}
-              currentText={text}
-            />
-            <AiPaceTool 
-              currentText={text} 
-              disabled={pomodoroState.isRunning && pomodoroState.currentInterval !== 'work'}
-              focusSettings={focusSettings}
-              onSuccessfulAiAction={awardXpForAiTool}
-            />
-            <TypographySettings settings={typographySettings} onSettingsChange={handleTypographyChange} />
-            <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+        {/* Desktop Sidebar */}
+        {showDesktopSidebar && (
+          <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col space-y-6">
+            <SidebarItems />
           </aside>
         )}
 
+        {/* Mobile Sidebar Sheet */}
+        {!isFullScreen && (
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
+                <ScrollArea className="h-full">
+                  <div className="p-6 space-y-6">
+                     <SidebarItems />
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+        )}
+
         <main className={cn(
-            'flex flex-col',
-            isFullScreen ? 'col-span-12 h-full p-2 md:p-8' : (showSidebar ? 'md:col-span-8 lg:col-span-9' : 'col-span-12'),
+            'flex flex-col flex-grow',
+            isFullScreen ? 'h-full p-2 md:p-8' : '',
           )}
         >
           <ZenMode 
@@ -323,6 +344,7 @@ export default function ZenWritePage() {
             disabled={isWritingDisabled}
             isTextFocusMode={focusSettings.enableParagraphFocus}
             typographySettings={typographySettings}
+            autoFocus={!isWritingDisabled && !isMobileMenuOpen}
           />
         </main>
       </div>
