@@ -5,16 +5,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Providers } from './providers';
 
-const geistSans = GeistSans({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = GeistMono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
 export const metadata: Metadata = {
   title: 'ZenWrite',
   description: 'Focus on your writing.',
@@ -27,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <Providers>
           {children}
           <Toaster />
