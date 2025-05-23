@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppHeader } from '@/components/zenwrite/app-header';
-import { ZenMode } from '@/components/zenwrite/zen-mode';
+import { ZenMode } from '@/components/zenwrite/ZenMode';
 import { CustomFocus } from '@/components/zenwrite/custom-focus';
 import { Writeodoro } from '@/components/zenwrite/writeodoro';
 import { ProgressVis } from '@/components/zenwrite/progress-vis';
@@ -77,6 +77,7 @@ export default function ZenWritePage() {
   const writingSessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previousWordCountRef = useRef(0);
 
+
   const handleNextInterval = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     
@@ -125,7 +126,7 @@ export default function ZenWritePage() {
         currentInterval: nextInterval,
         cycleCount: newCycleCount,
     }));
-  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG.workDuration, DEFAULT_POMODORO_CONFIG.shortBreakDuration, DEFAULT_POMODORO_CONFIG.longBreakDuration, DEFAULT_POMODORO_CONFIG.cyclesPerLongBreak]);
+  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG]);
 
 
   useEffect(() => {
@@ -263,8 +264,8 @@ export default function ZenWritePage() {
   const showDesktopSidebar = !isFullScreen && !isDeepWorkActive;
 
   const MobileToolsSection = () => (
-    <div className="block md:hidden w-full mb-4 px-4">
-      <ScrollArea className="h-auto max-h-96" > {/* Use a fixed max-height like max-h-96 (24rem) or a viewport relative like max-h-[40vh] */}
+    <div className="block md:hidden w-full mb-4 px-4 max-h-[50vh]"> {/* Constrain parent of ScrollArea */}
+      <ScrollArea className="h-full"> {/* ScrollArea fills its constrained parent */}
         <Accordion type="multiple" className="w-full space-y-1">
           <AccordionItem value="goals">
             <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
@@ -338,7 +339,7 @@ export default function ZenWritePage() {
         {/* Desktop Sidebar */}
         {showDesktopSidebar && (
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
-            <ScrollArea className="flex-1 min-h-0"> {/* Ensures scrollability on desktop */}
+            <ScrollArea className="flex-1 min-h-0"> 
               <div className="p-4 space-y-6">
                 <CustomFocus
                   wordGoal={wordGoal}
@@ -406,3 +407,5 @@ export default function ZenWritePage() {
     </div>
   );
 }
+
+    
