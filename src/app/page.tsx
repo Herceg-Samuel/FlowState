@@ -10,7 +10,7 @@ import { ProgressVis } from '@/components/zenwrite/progress-vis';
 import { BadgeSystem } from '@/components/zenwrite/badge-system';
 import { AiPaceTool } from '@/components/zenwrite/ai-pace-tool';
 import { FocusSettings } from '@/components/zenwrite/focus-settings';
-import { TypographySettings } from '@/components/zenwrite/TypographySettings'; 
+// import { TypographySettings } from '@/components/zenwrite/TypographySettings'; // Removed
 import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState, TypographySettingsState } from '@/lib/types';
 import { BADGES_CONFIG } from '@/lib/badge-config';
 import { useToast } from '@/hooks/use-toast';
@@ -290,7 +290,7 @@ export default function ZenWritePage() {
         focusSettings={focusSettings}
         onSuccessfulAiAction={awardXpForAiTool}
       />
-      <TypographySettings settings={typographySettings} onSettingsChange={handleTypographyChange} />
+      {/* TypographySettings removed from here */}
       <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
     </>
   );
@@ -316,7 +316,6 @@ export default function ZenWritePage() {
         {/* Desktop Sidebar */}
         {showDesktopSidebar && (
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
-            {/* Use flex-1 and min-h-0 on ScrollArea to make it take available height and allow scrolling */}
             <ScrollArea className="flex-1 min-h-0">
               <div className="p-4 space-y-6">
                 <SidebarItems />
@@ -350,6 +349,7 @@ export default function ZenWritePage() {
             disabled={isWritingDisabled}
             isTextFocusMode={focusSettings.enableParagraphFocus}
             typographySettings={typographySettings}
+            onTypographyChange={handleTypographyChange} // Pass handler to ZenMode
             autoFocus={!isWritingDisabled && !isMobileMenuOpen}
           />
         </main>
