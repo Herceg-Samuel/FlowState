@@ -19,6 +19,8 @@ export interface AppStats {
   writingTimeToday: number; // in seconds
   zenSessions: number;
   currentStreak: number; // days
+  xp: number; // Experience Points
+  level: number; // Writer Level
   // Optional: add if specific logic for "words in current session" is needed for badges
   // currentSessionWordCount: number;
 }

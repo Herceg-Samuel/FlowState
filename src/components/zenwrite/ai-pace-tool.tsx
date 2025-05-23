@@ -20,6 +20,7 @@ interface AiPaceToolProps {
   currentText: string;
   disabled?: boolean;
   focusSettings: FocusSettingsState;
+  onSuccessfulAiAction: () => void; // Callback to award XP
 }
 
 type AiModalContent = 
@@ -29,7 +30,7 @@ type AiModalContent =
   | { type: 'improveWriting'; data: ImproveWritingOutput };
 
 
-export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolProps) {
+export function AiPaceTool({ currentText, disabled, focusSettings, onSuccessfulAiAction }: AiPaceToolProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [modalContent, setModalContent] = useState<AiModalContent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +43,15 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
     title: string, 
     successType: AiModalContent['type']
   ) => {
-    if (!currentText.trim() && (successType === 'paceAnalysis' || successType === 'breakSuggestion' || successType === 'stuckActivity' || successType === 'improveWriting')) {
-      toast({
-        title: 'Text Required',
-        description: 'Please write some text before using this AI tool.',
-        variant: 'destructive',
-      });
-      return;
+    if (!currentText.trim() && (successType === 'paceAnalysis' || successType === 'breakSuggestion' || successType === 'improveWriting')) {
+      if (successType !== 'stuckActivity') { // Stuck activity can work with empty text
+        toast({
+            title: 'Text Required',
+            description: 'Please write some text before using this AI tool.',
+            variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -60,6 +63,7 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
     try {
       const result = await action();
       setModalContent({ type: successType, data: result } as AiModalContent);
+      onSuccessfulAiAction(); // Award XP
     } catch (err) {
       console.error(`${title} Error:`, err);
       setError(err instanceof Error ? err.message : `An unknown error occurred during ${title.toLowerCase()}.`);
@@ -91,7 +95,7 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
 
   const handleStuckActivity = () => {
     handleGenericAiAction(
-      async () => suggestStuckActivity({ currentText }),
+      async () => suggestStuckActivity({ currentText }), // Can be called with empty currentText
       'Stuck Point Activity',
       'stuckActivity'
     );
@@ -109,7 +113,7 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center text-xl"><Wand2 className="mr-2 h-5 w-5" />AI Writing Assistant</CardTitle>
-        <CardDescription>Tools to analyze and improve your writing.</CardDescription>
+        <CardDescription>Tools to analyze, improve your writing, and earn XP!</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <Button onClick={handleImproveWriting} disabled={isLoading || disabled} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">

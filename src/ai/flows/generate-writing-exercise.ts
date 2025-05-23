@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview AI-powered tool to generate brief writing exercises.
+ * @fileOverview AI-powered tool to generate brief writing exercises or "quests".
  *
- * - generateWritingExercise - A function that creates a writing exercise, optionally based on a topic.
+ * - generateWritingExercise - A function that creates a writing exercise/quest, optionally based on a topic.
  * - GenerateWritingExerciseInput - The input type for the function.
  * - GenerateWritingExerciseOutput - The return type for the function.
  */
@@ -18,8 +18,8 @@ const GenerateWritingExerciseInputSchema = z.object({
 });
 
 const GenerateWritingExerciseOutputSchema = z.object({
-  exercisePrompt: z.string().describe('A concise and engaging writing exercise prompt for the user.'),
-  category: z.string().optional().describe('A category for the exercise, e.g., "Creativity Booster", "Character Sketch", "World Building", "Plot Untangler".'),
+  exercisePrompt: z.string().describe('A concise and engaging writing exercise prompt or quest for the user.'),
+  category: z.string().optional().describe('A category for the exercise, e.g., "Creativity Booster", "Character Sketch", "World Building", "Plot Untangler", "Mini Quest".'),
 });
 
 export type { GenerateWritingExerciseInput, GenerateWritingExerciseOutput };
@@ -33,21 +33,23 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateWritingExerciseInputSchema },
   output: { schema: GenerateWritingExerciseOutputSchema },
   prompt: `You are an AI assistant that generates short, creative writing exercises (1-2 sentences) designed to refresh creativity during a break.
+  Sometimes, frame these as mini "writing quests" or "challenges" to make them more engaging.
   
   {{#if currentTopic}}
-  The user is currently writing about: "{{currentTopic}}". Try to make the exercise somewhat relevant if possible, but keep it light and fun.
+  The user is currently writing about: "{{currentTopic}}". Try to make the exercise somewhat relevant if possible, but keep it light, fun, and brief.
   {{else}}
-  Generate a general creative writing exercise.
+  Generate a general creative writing exercise or a fun mini-quest.
   {{/if}}
 
-  The exercise should be something the user can do in 5-10 minutes.
+  The exercise/quest should be something the user can do in 5-10 minutes.
   Examples:
   - "Describe the smell of an old, forgotten book."
-  - "Write a 3-sentence story about a character who finds a mysterious key."
-  - "If your main character had a secret pet, what would it be and why?"
+  - "Quest: Write a 3-sentence story about a character who finds a mysterious key."
+  - "Challenge: If your main character had a secret pet, what would it be and why? Describe it in two sentences."
   - "Imagine a color no one has ever seen. Describe it."
+  - "Mini-Quest: Invent a fantastical creature and write its one-sentence origin story."
 
-  Provide the exercise prompt and an optional category. Output in the specified JSON format.
+  Provide the exercise prompt and an optional category (e.g., "Creativity Booster", "Mini Quest"). Output in the specified JSON format.
 `,
 });
 
@@ -61,7 +63,6 @@ const generateWritingExerciseFlow = ai.defineFlow(
     try {
       const { output } = await prompt(input);
       if (!output) {
-        // This case handles when the LLM successfully responds but doesn't provide valid structured output
         console.warn('generateWritingExerciseFlow: LLM did not return valid output, using fallback.');
         return {
             exercisePrompt: "Take a moment to jot down three interesting words you've encountered today. Try to use them in a sentence later!",
@@ -70,7 +71,6 @@ const generateWritingExerciseFlow = ai.defineFlow(
       }
       return output;
     } catch (error) {
-      // This case handles errors during the prompt execution itself (e.g., API key issues, network errors to LLM)
       console.error('generateWritingExerciseFlow: Error calling prompt:', error);
       return {
           exercisePrompt: "Apologies, I couldn't generate an exercise right now. How about sketching a character from your story?",
@@ -79,4 +79,3 @@ const generateWritingExerciseFlow = ai.defineFlow(
     }
   }
 );
-
