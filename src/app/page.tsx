@@ -261,59 +261,87 @@ export default function ZenWritePage() {
   const isWritingDisabled = pomodoroState.isRunning && pomodoroState.currentInterval !== 'work';
   const isDeepWorkActive = focusSettings.enableDeepWorkMode && pomodoroState.isRunning && pomodoroState.currentInterval === 'work';
   
+  const SidebarItems = () => (
+    <>
+      <CustomFocus
+        wordGoal={wordGoal}
+        timeGoal={timeGoal}
+        onSetWordGoal={handleSetWordGoal}
+        onSetTimeGoal={handleSetTimeGoal}
+        disabled={pomodoroState.isRunning}
+      />
+      <Writeodoro
+        pomodoroState={pomodoroState}
+        pomodoroConfig={DEFAULT_POMODORO_CONFIG}
+        onStart={handlePomodoroStart}
+        onPause={handlePomodoroPause}
+        onReset={handlePomodoroReset}
+        onSkip={handlePomodoroSkip}
+        disabled={false} 
+        focusSettings={focusSettings}
+        currentText={text}
+      />
+      <AiPaceTool 
+        currentText={text} 
+        disabled={isWritingDisabled}
+        focusSettings={focusSettings}
+        onSuccessfulAiAction={awardXpForAiTool}
+      />
+      <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+    </>
+  );
+  
   const showDesktopSidebar = !isFullScreen && !isDeepWorkActive;
 
   const MobileToolsSection = () => (
-    <div className="block md:hidden w-full mb-4 px-4 max-h-[50vh]"> {/* Constrain parent of ScrollArea */}
-      <ScrollArea className="h-full"> {/* ScrollArea fills its constrained parent */}
-        <Accordion type="multiple" className="w-full space-y-1">
-          <AccordionItem value="goals">
-            <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
-            <AccordionContent className="pt-2 pb-4">
-              <CustomFocus
-                wordGoal={wordGoal}
-                timeGoal={timeGoal}
-                onSetWordGoal={handleSetWordGoal}
-                onSetTimeGoal={handleSetTimeGoal}
-                disabled={pomodoroState.isRunning}
-              />
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="writeodoro">
-            <AccordionTrigger className="text-sm py-3">Write-odoro Timer</AccordionTrigger>
-            <AccordionContent className="pt-2 pb-4">
-              <Writeodoro
-                pomodoroState={pomodoroState}
-                pomodoroConfig={DEFAULT_POMODORO_CONFIG}
-                onStart={handlePomodoroStart}
-                onPause={handlePomodoroPause}
-                onReset={handlePomodoroReset}
-                onSkip={handlePomodoroSkip}
-                disabled={false} 
-                focusSettings={focusSettings}
-                currentText={text}
-              />
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="ai-tools">
-            <AccordionTrigger className="text-sm py-3">AI Writing Assistant</AccordionTrigger>
-            <AccordionContent className="pt-2 pb-4">
-              <AiPaceTool 
-                currentText={text} 
-                disabled={isWritingDisabled}
-                focusSettings={focusSettings}
-                onSuccessfulAiAction={awardXpForAiTool}
-              />
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="focus-settings">
-            <AccordionTrigger className="text-sm py-3">Focus & AI Settings</AccordionTrigger>
-            <AccordionContent className="pt-2 pb-4">
-              <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </ScrollArea>
+    <div className="block md:hidden w-full mb-4 px-4 max-h-[50vh] overflow-y-auto"> {/* Added overflow-y-auto, removed ScrollArea */}
+      <Accordion type="multiple" className="w-full space-y-1">
+        <AccordionItem value="goals">
+          <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4">
+            <CustomFocus
+              wordGoal={wordGoal}
+              timeGoal={timeGoal}
+              onSetWordGoal={handleSetWordGoal}
+              onSetTimeGoal={handleSetTimeGoal}
+              disabled={pomodoroState.isRunning}
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="writeodoro">
+          <AccordionTrigger className="text-sm py-3">Write-odoro Timer</AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4">
+            <Writeodoro
+              pomodoroState={pomodoroState}
+              pomodoroConfig={DEFAULT_POMODORO_CONFIG}
+              onStart={handlePomodoroStart}
+              onPause={handlePomodoroPause}
+              onReset={handlePomodoroReset}
+              onSkip={handlePomodoroSkip}
+              disabled={false} 
+              focusSettings={focusSettings}
+              currentText={text}
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="ai-tools">
+          <AccordionTrigger className="text-sm py-3">AI Writing Assistant</AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4">
+            <AiPaceTool 
+              currentText={text} 
+              disabled={isWritingDisabled}
+              focusSettings={focusSettings}
+              onSuccessfulAiAction={awardXpForAiTool}
+            />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="focus-settings">
+          <AccordionTrigger className="text-sm py-3">Focus & AI Settings</AccordionTrigger>
+          <AccordionContent className="pt-2 pb-4">
+            <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 
@@ -341,31 +369,7 @@ export default function ZenWritePage() {
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
             <ScrollArea className="flex-1 min-h-0"> 
               <div className="p-4 space-y-6">
-                <CustomFocus
-                  wordGoal={wordGoal}
-                  timeGoal={timeGoal}
-                  onSetWordGoal={handleSetWordGoal}
-                  onSetTimeGoal={handleSetTimeGoal}
-                  disabled={pomodoroState.isRunning}
-                />
-                <Writeodoro
-                  pomodoroState={pomodoroState}
-                  pomodoroConfig={DEFAULT_POMODORO_CONFIG}
-                  onStart={handlePomodoroStart}
-                  onPause={handlePomodoroPause}
-                  onReset={handlePomodoroReset}
-                  onSkip={handlePomodoroSkip}
-                  disabled={false} 
-                  focusSettings={focusSettings}
-                  currentText={text}
-                />
-                <AiPaceTool 
-                  currentText={text} 
-                  disabled={isWritingDisabled}
-                  focusSettings={focusSettings}
-                  onSuccessfulAiAction={awardXpForAiTool}
-                />
-                <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+                <SidebarItems />
               </div>
             </ScrollArea>
           </aside>
@@ -377,7 +381,7 @@ export default function ZenWritePage() {
         <main className={cn(
             'flex flex-col flex-grow',
              isFullScreen ? 'h-full p-2 md:p-8' : 'px-4 md:px-0',
-             isFullScreen ? '' : 'order-first md:order-last' 
+             isFullScreen ? '' : 'order-first md:order-last' // On mobile, tools section is first
           )}
         >
           <ZenMode 
@@ -407,5 +411,3 @@ export default function ZenWritePage() {
     </div>
   );
 }
-
-    
