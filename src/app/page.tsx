@@ -10,7 +10,7 @@ import { ProgressVis } from '@/components/zenwrite/progress-vis';
 import { BadgeSystem } from '@/components/zenwrite/badge-system';
 import { AiPaceTool } from '@/components/zenwrite/ai-pace-tool';
 import { FocusSettings } from '@/components/zenwrite/focus-settings';
-import { TypographySettings } from '@/components/zenwrite/TypographySettings';
+import { TypographySettings } from '@/components/zenwrite/TypographySettings'; 
 import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState, TypographySettingsState } from '@/lib/types';
 import { BADGES_CONFIG } from '@/lib/badge-config';
 import { useToast } from '@/hooks/use-toast';
@@ -126,7 +126,8 @@ export default function ZenWritePage() {
         currentInterval: nextInterval,
         cycleCount: newCycleCount,
     }));
-  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast]);
+  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG]);
+
 
   useEffect(() => {
     if (pomodoroState.isRunning && pomodoroState.timeLeft > 0) {
@@ -279,7 +280,7 @@ export default function ZenWritePage() {
         onPause={handlePomodoroPause}
         onReset={handlePomodoroReset}
         onSkip={handlePomodoroSkip}
-        disabled={false} // Assuming Writeodoro itself shouldn't be disabled by parent `disabled` prop
+        disabled={false} 
         focusSettings={focusSettings}
         currentText={text}
       />
@@ -315,8 +316,9 @@ export default function ZenWritePage() {
         {/* Desktop Sidebar */}
         {showDesktopSidebar && (
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-6"> {/* Added padding and original space-y here */}
+            {/* Use flex-1 and min-h-0 on ScrollArea to make it take available height and allow scrolling */}
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-4 space-y-6">
                 <SidebarItems />
               </div>
             </ScrollArea>
