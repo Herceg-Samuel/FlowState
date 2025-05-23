@@ -58,13 +58,25 @@ const generateWritingExerciseFlow = ai.defineFlow(
     outputSchema: GenerateWritingExerciseOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-     if (!output) {
+    try {
+      const { output } = await prompt(input);
+      if (!output) {
+        // This case handles when the LLM successfully responds but doesn't provide valid structured output
+        console.warn('generateWritingExerciseFlow: LLM did not return valid output, using fallback.');
         return {
             exercisePrompt: "Take a moment to jot down three interesting words you've encountered today. Try to use them in a sentence later!",
             category: "Vocabulary Builder"
         };
+      }
+      return output;
+    } catch (error) {
+      // This case handles errors during the prompt execution itself (e.g., API key issues, network errors to LLM)
+      console.error('generateWritingExerciseFlow: Error calling prompt:', error);
+      return {
+          exercisePrompt: "Apologies, I couldn't generate an exercise right now. How about sketching a character from your story?",
+          category: "Creative Block"
+      };
     }
-    return output;
   }
 );
+

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI-powered analysis tool to assess writing pace and style.
@@ -42,6 +43,16 @@ const analyzeWritingPaceFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      console.error('analyzeWritingPaceFlow: LLM did not return valid output. Returning fallback response.');
+      return {
+        paceAnalysis: "Error: Could not analyze pace at this time. The AI model did not provide a valid response.",
+        styleAnalysis: "Error: Could not analyze style. Please try again later.",
+        writingBlocks: "Error: Could not identify writing blocks. Ensure your text is substantial enough for analysis.",
+        suggestedResources: "Error: Could not suggest resources. You can try standard writing improvement websites."
+      };
+    }
+    return output;
   }
 );
+
