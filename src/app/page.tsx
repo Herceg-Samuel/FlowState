@@ -47,7 +47,7 @@ export const LEVEL_XP_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 300
 export default function ZenWritePage() {
   const [text, setText] = useState('');
   const [wordGoal, setWordGoal] = useState(0);
-  const [timeGoal, setTimeGoal] = useState(0);
+  const [timeGoal, setTimeGoal] = useState(0); // in minutes
 
   const [pomodoroState, setPomodoroState] = useState<PomodoroState>({
     isRunning: false,
@@ -62,9 +62,9 @@ export default function ZenWritePage() {
     wordCount: 0,
     pomodorosCompletedThisSession: 0,
     totalPomodorosCompleted: 0,
-    writingTimeToday: 0,
+    writingTimeToday: 0, // in seconds
     zenSessions: 0,
-    currentStreak: 0,
+    currentStreak: 0, // days
     xp: 0,
     level: 1,
   });
@@ -128,6 +128,18 @@ export default function ZenWritePage() {
     }));
   }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast]);
 
+  useEffect(() => {
+    if (pomodoroState.isRunning && pomodoroState.timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setPomodoroState(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+      }, 1000);
+    } else if (pomodoroState.isRunning && pomodoroState.timeLeft === 0) {
+      handleNextInterval();
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [pomodoroState.isRunning, pomodoroState.timeLeft, handleNextInterval]);
 
   useEffect(() => {
     const words = text.trim().split(/\s+/).filter(Boolean);
@@ -192,19 +204,6 @@ export default function ZenWritePage() {
       setBadges(newBadges);
     }
   }, [appStats, badges, toast]); 
-
-  useEffect(() => {
-    if (pomodoroState.isRunning && pomodoroState.timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setPomodoroState(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
-      }, 1000);
-    } else if (pomodoroState.isRunning && pomodoroState.timeLeft === 0) {
-      handleNextInterval();
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [pomodoroState.isRunning, pomodoroState.timeLeft, handleNextInterval]);
 
   const awardXpForAiTool = useCallback(() => {
     setAppStats(prev => ({ ...prev, xp: prev.xp + XP_FOR_AI_TOOL_USE }));
@@ -280,6 +279,7 @@ export default function ZenWritePage() {
         onPause={handlePomodoroPause}
         onReset={handlePomodoroReset}
         onSkip={handlePomodoroSkip}
+        disabled={false} // Assuming Writeodoro itself shouldn't be disabled by parent `disabled` prop
         focusSettings={focusSettings}
         currentText={text}
       />
@@ -314,8 +314,12 @@ export default function ZenWritePage() {
       >
         {/* Desktop Sidebar */}
         {showDesktopSidebar && (
-          <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col space-y-6">
-            <SidebarItems />
+          <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-6"> {/* Added padding and original space-y here */}
+                <SidebarItems />
+              </div>
+            </ScrollArea>
           </aside>
         )}
 
