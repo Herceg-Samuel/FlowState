@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'ZenWrite',
-  description: 'Focus on your writing.',
+  title: 'FlowState',
+  description: 'Achieve your writing flow.',
 };
 
 export default function RootLayout({

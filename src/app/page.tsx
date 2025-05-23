@@ -44,7 +44,7 @@ const XP_FOR_AI_TOOL_USE = 20;
 export const LEVEL_XP_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 4000, 5000, 7500, 10000];
 
 
-export default function ZenWritePage() {
+export default function FlowStatePage() {
   const [text, setText] = useState('');
   const [wordGoal, setWordGoal] = useState(0);
   const [timeGoal, setTimeGoal] = useState(0); // in minutes
@@ -294,7 +294,7 @@ export default function ZenWritePage() {
   const showDesktopSidebar = !isFullScreen && !isDeepWorkActive;
 
   const MobileToolsSection = () => (
-    <div className="block md:hidden w-full mb-4 px-4 max-h-[50vh] overflow-y-auto"> {/* Added overflow-y-auto, removed ScrollArea */}
+    <div className="block md:hidden w-full mb-4 px-4 max-h-[50vh] overflow-y-auto">
       <Accordion type="multiple" className="w-full space-y-1">
         <AccordionItem value="goals">
           <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
@@ -405,7 +405,7 @@ export default function ZenWritePage() {
             timeGoal={timeGoal}
           />
           <BadgeSystem badges={badges} />
-           <p className="text-center text-xs text-muted-foreground mt-8">ZenWrite - Your focused writing companion.</p>
+           <p className="text-center text-xs text-muted-foreground mt-8">FlowState - Your focused writing companion.</p>
         </footer>
       )}
     </div>
