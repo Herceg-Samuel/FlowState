@@ -264,7 +264,7 @@ export default function ZenWritePage() {
 
   const MobileToolsSection = () => (
     <div className="block md:hidden w-full mb-4 px-4">
-      <ScrollArea className="h-auto max-h-[calc(100vh-280px)]" > {/* Adjusted max-h */}
+      <ScrollArea className="h-auto max-h-96" > {/* Use a fixed max-height like max-h-96 (24rem) or a viewport relative like max-h-[40vh] */}
         <Accordion type="multiple" className="w-full space-y-1">
           <AccordionItem value="goals">
             <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
@@ -324,7 +324,7 @@ export default function ZenWritePage() {
               isFullScreen={isFullScreen} 
               onFullScreenToggle={toggleFullScreen} 
               appStats={appStats}
-              showMobileMenuButton={false} // Mobile menu button removed as tools are inline
+              showMobileMenuButton={false} 
           />
       )}
       
@@ -338,7 +338,7 @@ export default function ZenWritePage() {
         {/* Desktop Sidebar */}
         {showDesktopSidebar && (
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 min-h-0"> {/* Ensures scrollability on desktop */}
               <div className="p-4 space-y-6">
                 <CustomFocus
                   wordGoal={wordGoal}
@@ -376,7 +376,7 @@ export default function ZenWritePage() {
         <main className={cn(
             'flex flex-col flex-grow',
              isFullScreen ? 'h-full p-2 md:p-8' : 'px-4 md:px-0',
-             isFullScreen ? '' : 'order-first md:order-last' // Ensure ZenMode is first on mobile if tools are below
+             isFullScreen ? '' : 'order-first md:order-last' 
           )}
         >
           <ZenMode 
