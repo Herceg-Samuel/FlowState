@@ -10,13 +10,13 @@ import { ProgressVis } from '@/components/zenwrite/progress-vis';
 import { BadgeSystem } from '@/components/zenwrite/badge-system';
 import { AiPaceTool } from '@/components/zenwrite/ai-pace-tool';
 import { FocusSettings } from '@/components/zenwrite/focus-settings';
-// import { TypographySettings } from '@/components/zenwrite/TypographySettings'; // Removed
 import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState, TypographySettingsState } from '@/lib/types';
 import { BADGES_CONFIG } from '@/lib/badge-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 const DEFAULT_POMODORO_CONFIG: PomodoroConfig = {
   workDuration: 25 * 60,
@@ -76,7 +76,6 @@ export default function ZenWritePage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const writingSessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previousWordCountRef = useRef(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNextInterval = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -126,7 +125,7 @@ export default function ZenWritePage() {
         currentInterval: nextInterval,
         cycleCount: newCycleCount,
     }));
-  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG]);
+  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG.workDuration, DEFAULT_POMODORO_CONFIG.shortBreakDuration, DEFAULT_POMODORO_CONFIG.longBreakDuration, DEFAULT_POMODORO_CONFIG.cyclesPerLongBreak]);
 
 
   useEffect(() => {
@@ -262,38 +261,61 @@ export default function ZenWritePage() {
   const isDeepWorkActive = focusSettings.enableDeepWorkMode && pomodoroState.isRunning && pomodoroState.currentInterval === 'work';
   
   const showDesktopSidebar = !isFullScreen && !isDeepWorkActive;
-  const showMobileMenuButtonInHeader = !isFullScreen && !isDeepWorkActive;
 
-  const SidebarItems = () => (
-    <>
-      <CustomFocus
-        wordGoal={wordGoal}
-        timeGoal={timeGoal}
-        onSetWordGoal={handleSetWordGoal}
-        onSetTimeGoal={handleSetTimeGoal}
-        disabled={pomodoroState.isRunning}
-      />
-      <Writeodoro
-        pomodoroState={pomodoroState}
-        pomodoroConfig={DEFAULT_POMODORO_CONFIG}
-        onStart={handlePomodoroStart}
-        onPause={handlePomodoroPause}
-        onReset={handlePomodoroReset}
-        onSkip={handlePomodoroSkip}
-        disabled={false} 
-        focusSettings={focusSettings}
-        currentText={text}
-      />
-      <AiPaceTool 
-        currentText={text} 
-        disabled={isWritingDisabled}
-        focusSettings={focusSettings}
-        onSuccessfulAiAction={awardXpForAiTool}
-      />
-      {/* TypographySettings removed from here */}
-      <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
-    </>
+  const MobileToolsSection = () => (
+    <div className="block md:hidden w-full mb-4 px-4">
+      <ScrollArea className="h-auto max-h-[calc(100vh-280px)]" > {/* Adjusted max-h */}
+        <Accordion type="multiple" className="w-full space-y-1">
+          <AccordionItem value="goals">
+            <AccordionTrigger className="text-sm py-3">Set Your Goals</AccordionTrigger>
+            <AccordionContent className="pt-2 pb-4">
+              <CustomFocus
+                wordGoal={wordGoal}
+                timeGoal={timeGoal}
+                onSetWordGoal={handleSetWordGoal}
+                onSetTimeGoal={handleSetTimeGoal}
+                disabled={pomodoroState.isRunning}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="writeodoro">
+            <AccordionTrigger className="text-sm py-3">Write-odoro Timer</AccordionTrigger>
+            <AccordionContent className="pt-2 pb-4">
+              <Writeodoro
+                pomodoroState={pomodoroState}
+                pomodoroConfig={DEFAULT_POMODORO_CONFIG}
+                onStart={handlePomodoroStart}
+                onPause={handlePomodoroPause}
+                onReset={handlePomodoroReset}
+                onSkip={handlePomodoroSkip}
+                disabled={false} 
+                focusSettings={focusSettings}
+                currentText={text}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="ai-tools">
+            <AccordionTrigger className="text-sm py-3">AI Writing Assistant</AccordionTrigger>
+            <AccordionContent className="pt-2 pb-4">
+              <AiPaceTool 
+                currentText={text} 
+                disabled={isWritingDisabled}
+                focusSettings={focusSettings}
+                onSuccessfulAiAction={awardXpForAiTool}
+              />
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="focus-settings">
+            <AccordionTrigger className="text-sm py-3">Focus & AI Settings</AccordionTrigger>
+            <AccordionContent className="pt-2 pb-4">
+              <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </ScrollArea>
+    </div>
   );
+
 
   return (
     <div className={cn('flex flex-col min-h-screen transition-all duration-300 bg-background')}>
@@ -302,15 +324,15 @@ export default function ZenWritePage() {
               isFullScreen={isFullScreen} 
               onFullScreenToggle={toggleFullScreen} 
               appStats={appStats}
-              showMobileMenuButton={showMobileMenuButtonInHeader}
-              onMobileMenuToggle={() => setIsMobileMenuOpen(true)}
+              showMobileMenuButton={false} // Mobile menu button removed as tools are inline
           />
       )}
       
       <div 
         className={cn(
-            'flex-grow w-full max-w-7xl mx-auto transition-all duration-300 flex flex-col md:flex-row', 
-            isFullScreen ? 'p-0' : 'p-4 md:p-6 gap-6'
+            'flex-grow w-full max-w-7xl mx-auto transition-all duration-300 flex flex-col', 
+            isFullScreen ? 'p-0' : 'p-4 md:p-6',
+            isFullScreen ? '' : 'md:flex-row md:gap-6'
         )}
       >
         {/* Desktop Sidebar */}
@@ -318,28 +340,43 @@ export default function ZenWritePage() {
           <aside className="hidden md:flex md:w-[360px] shrink-0 flex-col">
             <ScrollArea className="flex-1 min-h-0">
               <div className="p-4 space-y-6">
-                <SidebarItems />
+                <CustomFocus
+                  wordGoal={wordGoal}
+                  timeGoal={timeGoal}
+                  onSetWordGoal={handleSetWordGoal}
+                  onSetTimeGoal={handleSetTimeGoal}
+                  disabled={pomodoroState.isRunning}
+                />
+                <Writeodoro
+                  pomodoroState={pomodoroState}
+                  pomodoroConfig={DEFAULT_POMODORO_CONFIG}
+                  onStart={handlePomodoroStart}
+                  onPause={handlePomodoroPause}
+                  onReset={handlePomodoroReset}
+                  onSkip={handlePomodoroSkip}
+                  disabled={false} 
+                  focusSettings={focusSettings}
+                  currentText={text}
+                />
+                <AiPaceTool 
+                  currentText={text} 
+                  disabled={isWritingDisabled}
+                  focusSettings={focusSettings}
+                  onSuccessfulAiAction={awardXpForAiTool}
+                />
+                <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
               </div>
             </ScrollArea>
           </aside>
         )}
 
-        {/* Mobile Sidebar Sheet */}
-        {!isFullScreen && (
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
-                <ScrollArea className="h-full">
-                  <div className="p-6 space-y-6">
-                     <SidebarItems />
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-        )}
+        {/* Mobile Tools Section (Accordion) - Only when not in full screen */}
+        {!isFullScreen && <MobileToolsSection />}
 
         <main className={cn(
             'flex flex-col flex-grow',
-            isFullScreen ? 'h-full p-2 md:p-8' : '',
+             isFullScreen ? 'h-full p-2 md:p-8' : 'px-4 md:px-0',
+             isFullScreen ? '' : 'order-first md:order-last' // Ensure ZenMode is first on mobile if tools are below
           )}
         >
           <ZenMode 
@@ -349,8 +386,8 @@ export default function ZenWritePage() {
             disabled={isWritingDisabled}
             isTextFocusMode={focusSettings.enableParagraphFocus}
             typographySettings={typographySettings}
-            onTypographyChange={handleTypographyChange} // Pass handler to ZenMode
-            autoFocus={!isWritingDisabled && !isMobileMenuOpen}
+            onTypographyChange={handleTypographyChange}
+            autoFocus={!isWritingDisabled}
           />
         </main>
       </div>
