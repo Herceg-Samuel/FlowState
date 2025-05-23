@@ -1,32 +1,48 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc, DialogTrigger, DialogFooter } from '@/components/ui/dialog'; // Renamed DialogDescription
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Wand2, Loader2 } from 'lucide-react';
+import { Wand2, Loader2, Lightbulb, ThumbsUp, Brain } from 'lucide-react';
 import { analyzeWritingPace, type AnalyzeWritingPaceOutput, type AnalyzeWritingPaceInput } from '@/ai/flows/analyze-writing-pace';
+import { suggestBreakPoint, type SuggestBreakPointInput, type SuggestBreakPointOutput } from '@/ai/flows/suggest-break-point';
+import { suggestStuckActivity, type SuggestStuckActivityInput, type SuggestStuckActivityOutput } from '@/ai/flows/suggest-stuck-activity';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { FocusSettingsState } from '@/lib/types';
 
 interface AiPaceToolProps {
   currentText: string;
   disabled?: boolean;
+  focusSettings: FocusSettingsState;
 }
 
-export function AiPaceTool({ currentText, disabled }: AiPaceToolProps) {
+type AiModalContent = 
+  | { type: 'paceAnalysis'; data: AnalyzeWritingPaceOutput }
+  | { type: 'breakSuggestion'; data: SuggestBreakPointOutput }
+  | { type: 'stuckActivity'; data: SuggestStuckActivityOutput };
+
+
+export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalyzeWritingPaceOutput | null>(null);
+  const [modalContent, setModalContent] = useState<AiModalContent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentDialogTitle, setCurrentDialogTitle] = useState('');
   const { toast } = useToast();
 
-  const handleAnalyze = async () => {
-    if (!currentText.trim()) {
+  const handleGenericAiAction = async (
+    action: () => Promise<any>, 
+    title: string, 
+    successType: AiModalContent['type']
+  ) => {
+    if (!currentText.trim() && (successType === 'paceAnalysis' || successType === 'breakSuggestion' || successType === 'stuckActivity')) {
       toast({
         title: 'Text Required',
-        description: 'Please write some text before analyzing.',
+        description: 'Please write some text before using this AI tool.',
         variant: 'destructive',
       });
       return;
@@ -34,19 +50,19 @@ export function AiPaceTool({ currentText, disabled }: AiPaceToolProps) {
 
     setIsLoading(true);
     setError(null);
-    setAnalysisResult(null);
-    setIsDialogOpen(true); // Open dialog when analysis starts
+    setModalContent(null);
+    setCurrentDialogTitle(title);
+    setIsDialogOpen(true);
 
     try {
-      const input: AnalyzeWritingPaceInput = { text: currentText };
-      const result = await analyzeWritingPace(input);
-      setAnalysisResult(result);
+      const result = await action();
+      setModalContent({ type: successType, data: result } as AiModalContent);
     } catch (err) {
-      console.error('AI Pace Analysis Error:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred during analysis.');
+      console.error(`${title} Error:`, err);
+      setError(err instanceof Error ? err.message : `An unknown error occurred during ${title.toLowerCase()}.`);
       toast({
-        title: 'Analysis Failed',
-        description: 'Could not analyze your writing pace. Please try again.',
+        title: `${title} Failed`,
+        description: `Could not perform ${title.toLowerCase()}. Please try again.`,
         variant: 'destructive',
       });
     } finally {
@@ -54,36 +70,67 @@ export function AiPaceTool({ currentText, disabled }: AiPaceToolProps) {
     }
   };
 
+  const handleAnalyzePace = () => {
+    handleGenericAiAction(
+      async () => analyzeWritingPace({ text: currentText }),
+      'Writing Pace Analysis',
+      'paceAnalysis'
+    );
+  };
+
+  const handleSuggestBreak = () => {
+    handleGenericAiAction(
+      async () => suggestBreakPoint({ text: currentText }),
+      'Break Point Suggestion',
+      'breakSuggestion'
+    );
+  };
+
+  const handleStuckActivity = () => {
+    handleGenericAiAction(
+      async () => suggestStuckActivity({ currentText }), // Can add problemDescription later
+      'Stuck Point Activity',
+      'stuckActivity'
+    );
+  };
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center text-xl"><Wand2 className="mr-2 h-5 w-5" />AI Pace Analyzer</CardTitle>
-        <CardDescription>Get insights into your writing style and pace.</CardDescription>
+        <CardTitle className="flex items-center text-xl"><Wand2 className="mr-2 h-5 w-5" />AI Writing Assistant</CardTitle>
+        <CardDescription>Tools to analyze and improve your writing.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleAnalyze} disabled={isLoading || disabled} className="w-full">
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="mr-2 h-4 w-4" />
-              )}
-              Analyze My Writing
+      <CardContent className="space-y-3">
+        <Button onClick={handleAnalyzePace} disabled={isLoading || disabled} className="w-full">
+          {isLoading && currentDialogTitle === 'Writing Pace Analysis' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+          Analyze Pace & Style
+        </Button>
+        {focusSettings.enableContentAwareBreaks && (
+          <>
+            <Button onClick={handleSuggestBreak} disabled={isLoading || disabled} className="w-full" variant="outline">
+              {isLoading && currentDialogTitle === 'Break Point Suggestion' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
+              Suggest Break Point
             </Button>
-          </DialogTrigger>
+            <Button onClick={handleStuckActivity} disabled={isLoading || disabled} className="w-full" variant="outline">
+             {isLoading && currentDialogTitle === 'Stuck Point Activity' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
+              Help! I'm Stuck
+            </Button>
+          </>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Writing Analysis</DialogTitle>
-              <DialogDescription>
-                Here's what our AI thinks about your writing.
-              </DialogDescription>
+              <DialogTitle>{currentDialogTitle || 'AI Analysis'}</DialogTitle>
+              <DialogDesc>
+                Here's what our AI suggests.
+              </DialogDesc>
             </DialogHeader>
             <ScrollArea className="h-[60vh] pr-4">
               {isLoading && (
                 <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <p className="mt-4 text-muted-foreground">Analyzing your text...</p>
+                  <p className="mt-4 text-muted-foreground">AI is thinking...</p>
                 </div>
               )}
               {error && (
@@ -92,12 +139,29 @@ export function AiPaceTool({ currentText, disabled }: AiPaceToolProps) {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              {analysisResult && (
+              {modalContent?.type === 'paceAnalysis' && modalContent.data && (
                 <div className="space-y-6 py-4">
-                  <AnalysisSection title="Pace Analysis" content={analysisResult.paceAnalysis} />
-                  <AnalysisSection title="Style Analysis" content={analysisResult.styleAnalysis} />
-                  <AnalysisSection title="Potential Writing Blocks" content={analysisResult.writingBlocks} />
-                  <AnalysisSection title="Suggested Resources" content={analysisResult.suggestedResources} />
+                  <AnalysisSection title="Pace Analysis" content={modalContent.data.paceAnalysis} />
+                  <AnalysisSection title="Style Analysis" content={modalContent.data.styleAnalysis} />
+                  <AnalysisSection title="Potential Writing Blocks" content={modalContent.data.writingBlocks} />
+                  <AnalysisSection title="Suggested Resources" content={modalContent.data.suggestedResources} />
+                </div>
+              )}
+              {modalContent?.type === 'breakSuggestion' && modalContent.data && (
+                 <div className="space-y-4 py-4">
+                    <Alert variant={modalContent.data.isGoodBreakPoint ? "default" : "destructive"}>
+                      <Lightbulb className="h-4 w-4"/>
+                      <AlertTitle>{modalContent.data.isGoodBreakPoint ? "Good Place for a Break!" : "Maybe Keep Going?"}</AlertTitle>
+                      <AlertDescription>{modalContent.data.reason}</AlertDescription>
+                    </Alert>
+                    {modalContent.data.suggestedAction && <p className="text-sm text-muted-foreground">Suggestion: {modalContent.data.suggestedAction}</p>}
+                 </div>
+              )}
+              {modalContent?.type === 'stuckActivity' && modalContent.data && (
+                <div className="space-y-4 py-4">
+                  <AnalysisSection title="Activity Suggestion" content={modalContent.data.activitySuggestion} />
+                  {modalContent.data.rationale && <AnalysisSection title="Rationale" content={modalContent.data.rationale} />}
+                  {modalContent.data.estimatedTime && <p className="text-sm text-muted-foreground">Estimated time: {modalContent.data.estimatedTime}</p>}
                 </div>
               )}
             </ScrollArea>
