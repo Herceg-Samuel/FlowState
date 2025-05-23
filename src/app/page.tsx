@@ -10,7 +10,8 @@ import { ProgressVis } from '@/components/zenwrite/progress-vis';
 import { BadgeSystem } from '@/components/zenwrite/badge-system';
 import { AiPaceTool } from '@/components/zenwrite/ai-pace-tool';
 import { FocusSettings } from '@/components/zenwrite/focus-settings';
-import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState } from '@/lib/types';
+import { TypographySettings } from '@/components/zenwrite/TypographySettings'; // Corrected Import Path
+import type { Badge, AppStats, PomodoroState, PomodoroConfig, FocusSettingsState, TypographySettingsState } from '@/lib/types';
 import { BADGES_CONFIG } from '@/lib/badge-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,11 @@ const INITIAL_FOCUS_SETTINGS: FocusSettingsState = {
   enableAiWritingExercises: true,
 };
 
+const INITIAL_TYPOGRAPHY_SETTINGS: TypographySettingsState = {
+  fontFamily: 'var(--font-geist-sans)', // Default to Geist Sans
+  fontSize: 16, // Default font size in px
+};
+
 const XP_FOR_WORD = 0.1; // 1 XP per 10 words
 const XP_FOR_POMODORO_COMPLETION = 50;
 const XP_FOR_AI_TOOL_USE = 20;
@@ -39,8 +45,6 @@ export const LEVEL_XP_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 300
 
 export default function ZenWritePage() {
   const [text, setText] = useState('');
-  // wordCount is now part of appStats, no separate state needed.
-
   const [wordGoal, setWordGoal] = useState(0);
   const [timeGoal, setTimeGoal] = useState(0); // in minutes
 
@@ -50,7 +54,6 @@ export default function ZenWritePage() {
     currentInterval: 'work',
     cycleCount: 0,
   });
-  // pomodorosCompletedThisSession & totalPomodorosCompleted are in appStats
 
   const [badges, setBadges] = useState<Badge[]>(() => BADGES_CONFIG.map(b => ({...b, achieved: false})));
   
@@ -58,7 +61,7 @@ export default function ZenWritePage() {
     wordCount: 0,
     pomodorosCompletedThisSession: 0,
     totalPomodorosCompleted: 0,
-    writingTimeToday: 0, // Renamed from timeElapsedToday
+    writingTimeToday: 0,
     zenSessions: 0,
     currentStreak: 0,
     xp: 0,
@@ -66,11 +69,63 @@ export default function ZenWritePage() {
   });
 
   const [focusSettings, setFocusSettings] = useState<FocusSettingsState>(INITIAL_FOCUS_SETTINGS);
+  const [typographySettings, setTypographySettings] = useState<TypographySettingsState>(INITIAL_TYPOGRAPHY_SETTINGS);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const writingSessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previousWordCountRef = useRef(0);
+
+  const handleNextInterval = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    let nextInterval: PomodoroState['currentInterval'] = 'work';
+    let nextTimeLeft = DEFAULT_POMODORO_CONFIG.workDuration;
+    let newCycleCount = pomodoroState.cycleCount;
+
+    setAppStats(prevStats => {
+      let updatedPomodorosCompletedThisSession = prevStats.pomodorosCompletedThisSession;
+      let updatedTotalPomodorosCompleted = prevStats.totalPomodorosCompleted;
+      let updatedXp = prevStats.xp;
+
+      if (pomodoroState.currentInterval === 'work') {
+        newCycleCount++;
+        updatedPomodorosCompletedThisSession++;
+        updatedTotalPomodorosCompleted++;
+        updatedXp += XP_FOR_POMODORO_COMPLETION; 
+
+        if (newCycleCount % DEFAULT_POMODORO_CONFIG.cyclesPerLongBreak === 0) {
+          nextInterval = 'longBreak';
+          nextTimeLeft = DEFAULT_POMODORO_CONFIG.longBreakDuration;
+          toast({ title: "Long Break Time!", description: `Great job! Take a ${DEFAULT_POMODORO_CONFIG.longBreakDuration / 60}-minute break.`, duration: 5000});
+        } else {
+          nextInterval = 'shortBreak';
+          nextTimeLeft = DEFAULT_POMODORO_CONFIG.shortBreakDuration;
+          toast({ title: "Short Break!", description: `Nice focus! Enjoy a ${DEFAULT_POMODORO_CONFIG.shortBreakDuration / 60}-minute break.`, duration: 5000});
+        }
+      } else { 
+        nextInterval = 'work';
+        nextTimeLeft = DEFAULT_POMODORO_CONFIG.workDuration;
+        toast({ title: "Back to Work!", description: "Time to focus and write!", duration: 5000});
+      }
+      
+      return {
+        ...prevStats,
+        pomodorosCompletedThisSession: updatedPomodorosCompletedThisSession,
+        totalPomodorosCompleted: updatedTotalPomodorosCompleted,
+        xp: updatedXp,
+      };
+    });
+
+    setPomodoroState(prev => ({
+        ...prev,
+        isRunning: true,
+        timeLeft: nextTimeLeft,
+        currentInterval: nextInterval,
+        cycleCount: newCycleCount,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pomodoroState.currentInterval, pomodoroState.cycleCount, toast, DEFAULT_POMODORO_CONFIG]);
 
 
   // Update word count and award XP for writing
@@ -94,9 +149,8 @@ export default function ZenWritePage() {
   // Level up logic
   useEffect(() => {
     const currentLevel = appStats.level;
-    // Ensure we don't check beyond defined thresholds and that currentLevel is at least 1
     if (currentLevel > 0 && currentLevel < LEVEL_XP_THRESHOLDS.length) {
-      const xpNeededForNextLevel = LEVEL_XP_THRESHOLDS[currentLevel]; // XP to reach (currentLevel + 1)
+      const xpNeededForNextLevel = LEVEL_XP_THRESHOLDS[currentLevel]; 
       if (appStats.xp >= xpNeededForNextLevel) {
         const newLevel = currentLevel + 1;
         setAppStats(prev => ({ ...prev, level: newLevel }));
@@ -138,60 +192,10 @@ export default function ZenWritePage() {
       }
       return badge;
     });
-    // Only update if there's an actual change to avoid re-renders
     if (JSON.stringify(newBadges) !== JSON.stringify(badges)) {
       setBadges(newBadges);
     }
   }, [appStats, badges, toast]); 
-
-  const handleNextInterval = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    let nextInterval: PomodoroState['currentInterval'] = 'work';
-    let nextTimeLeft = DEFAULT_POMODORO_CONFIG.workDuration;
-    let newCycleCount = pomodoroState.cycleCount;
-
-    setAppStats(prevStats => {
-      let updatedPomodorosCompletedThisSession = prevStats.pomodorosCompletedThisSession;
-      let updatedTotalPomodorosCompleted = prevStats.totalPomodorosCompleted;
-      let updatedXp = prevStats.xp;
-
-      if (pomodoroState.currentInterval === 'work') {
-        newCycleCount++;
-        updatedPomodorosCompletedThisSession++;
-        updatedTotalPomodorosCompleted++;
-        updatedXp += XP_FOR_POMODORO_COMPLETION; // Award XP for Pomodoro completion
-
-        if (newCycleCount % DEFAULT_POMODORO_CONFIG.cyclesPerLongBreak === 0) {
-          nextInterval = 'longBreak';
-          nextTimeLeft = DEFAULT_POMODORO_CONFIG.longBreakDuration;
-          toast({ title: "Long Break Time!", description: `Great job! Take a ${DEFAULT_POMODORO_CONFIG.longBreakDuration / 60}-minute break.`, duration: 5000});
-        } else {
-          nextInterval = 'shortBreak';
-          nextTimeLeft = DEFAULT_POMODORO_CONFIG.shortBreakDuration;
-          toast({ title: "Short Break!", description: `Nice focus! Enjoy a ${DEFAULT_POMODORO_CONFIG.shortBreakDuration / 60}-minute break.`, duration: 5000});
-        }
-      } else { 
-        nextInterval = 'work';
-        nextTimeLeft = DEFAULT_POMODORO_CONFIG.workDuration;
-        toast({ title: "Back to Work!", description: "Time to focus and write!", duration: 5000});
-      }
-      
-      return {
-        ...prevStats,
-        pomodorosCompletedThisSession: updatedPomodorosCompletedThisSession,
-        totalPomodorosCompleted: updatedTotalPomodorosCompleted,
-        xp: updatedXp,
-      };
-    });
-
-    setPomodoroState({
-      isRunning: true, 
-      timeLeft: nextTimeLeft,
-      currentInterval: nextInterval,
-      cycleCount: newCycleCount,
-    });
-  }, [pomodoroState, toast]);
 
   // Pomodoro timer logic
   useEffect(() => {
@@ -237,6 +241,11 @@ export default function ZenWritePage() {
   const handleSettingsChange = (newSettings: Partial<FocusSettingsState>) => {
     setFocusSettings(prev => ({ ...prev, ...newSettings }));
   };
+
+  const handleTypographyChange = (newSettings: Partial<TypographySettingsState>) => {
+    setTypographySettings(prev => ({ ...prev, ...newSettings }));
+  };
+
 
   // Dynamic Lighting Effect
   useEffect(() => {
@@ -297,6 +306,7 @@ export default function ZenWritePage() {
               focusSettings={focusSettings}
               onSuccessfulAiAction={awardXpForAiTool}
             />
+            <TypographySettings settings={typographySettings} onSettingsChange={handleTypographyChange} />
             <FocusSettings settings={focusSettings} onSettingsChange={handleSettingsChange} />
           </aside>
         )}
@@ -312,6 +322,7 @@ export default function ZenWritePage() {
             isFullScreen={isFullScreen} 
             disabled={isWritingDisabled}
             isTextFocusMode={focusSettings.enableParagraphFocus}
+            typographySettings={typographySettings}
           />
         </main>
       </div>

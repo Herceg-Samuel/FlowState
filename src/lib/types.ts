@@ -47,6 +47,11 @@ export interface FocusSettingsState {
   enableAiWritingExercises: boolean;
 }
 
+export interface TypographySettingsState {
+  fontFamily: string;
+  fontSize: number; // in pixels
+}
+
 // AI Flow Types
 export interface SuggestBreakPointInput {
   text: string;
