@@ -52,14 +52,13 @@ export function ZenMode({
   useEffect(() => {
     if (autoFocus && textareaRef.current && !disabled) {
       const activeElement = document.activeElement;
-      // Check if focus is already inside an input, select, textarea, or a dialog/accordion content
       const isInputFocused =
         activeElement &&
         (activeElement.tagName === 'INPUT' ||
          activeElement.tagName === 'TEXTAREA' ||
          activeElement.tagName === 'SELECT' ||
          activeElement.closest('[role="dialog"]') ||
-         activeElement.closest('[data-state="open"]')); // General check for open accordions/dialogs
+         activeElement.closest('[data-state="open"]'));
 
       if (!isInputFocused) {
          textareaRef.current.focus();
@@ -87,27 +86,13 @@ export function ZenMode({
 
   return (
     <div className={cn(
-        'flex-grow flex flex-col p-2 rounded-lg shadow-inner bg-card',
+        'flex-grow flex flex-col rounded-lg shadow-inner bg-card', // Removed p-2 from here
         isFullScreen ? 'h-full' : 'h-auto',
         isTextFocusMode && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
     >
-      <Textarea
-        ref={textareaRef}
-        placeholder="Begin your masterpiece..."
-        value={text}
-        onChange={handleChange}
-        className={cn(
-          'w-full flex-grow resize-none text-lg p-6 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder-muted-foreground',
-          isFullScreen ? 'min-h-full text-xl' : 'min-h-[160px]', // Adjusted min-height for non-fullscreen
-          isTextFocusMode && 'tracking-wide'
-        )}
-        style={writingAreaStyle}
-        disabled={disabled}
-        aria-label="Writing area"
-      />
-      {/* Typography Controls Bar - Always visible */}
-      <div className="flex items-center gap-x-4 gap-y-2 p-3 border-t border-border bg-background/50 rounded-b-lg flex-wrap">
+      {/* Typography Controls Bar - Moved to top */}
+      <div className="flex items-center gap-x-4 gap-y-2 p-3 border-b border-border bg-background/50 rounded-t-lg flex-wrap">
         <div className="flex items-center gap-2 flex-grow min-w-[180px] sm:min-w-[200px]">
           <TextQuote className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
           <Select
@@ -146,6 +131,21 @@ export function ZenMode({
           <span className="text-xs text-muted-foreground w-10 text-right flex-shrink-0">{typographySettings.fontSize}px</span>
         </div>
       </div>
+      
+      <Textarea
+        ref={textareaRef}
+        placeholder="Begin your masterpiece..."
+        value={text}
+        onChange={handleChange}
+        className={cn(
+          'w-full flex-grow resize-none text-lg p-6 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder-muted-foreground rounded-b-lg', // Added rounded-b-lg
+          isFullScreen ? 'min-h-full text-xl' : 'min-h-[160px]',
+          isTextFocusMode && 'tracking-wide'
+        )}
+        style={writingAreaStyle}
+        disabled={disabled}
+        aria-label="Writing area"
+      />
     </div>
   );
 }
