@@ -73,3 +73,12 @@ export interface SuggestStuckActivityOutput {
   rationale?: string; // Why this activity might help
   estimatedTime?: string; // e.g., "5-10 minutes"
 }
+
+export interface ImproveWritingInput {
+  text: string;
+}
+export interface ImproveWritingOutput {
+  originalText: string;
+  improvedText: string;
+  suggestions?: string[];
+}

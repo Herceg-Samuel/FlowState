@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc, DialogTrigger, DialogFooter } from '@/components/ui/dialog'; // Renamed DialogDescription
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Wand2, Loader2, Lightbulb, ThumbsUp, Brain } from 'lucide-react';
-import { analyzeWritingPace, type AnalyzeWritingPaceOutput, type AnalyzeWritingPaceInput } from '@/ai/flows/analyze-writing-pace';
-import { suggestBreakPoint, type SuggestBreakPointInput, type SuggestBreakPointOutput } from '@/ai/flows/suggest-break-point';
-import { suggestStuckActivity, type SuggestStuckActivityInput, type SuggestStuckActivityOutput } from '@/ai/flows/suggest-stuck-activity';
+import { Textarea } from '@/components/ui/textarea';
+import { Wand2, Loader2, Lightbulb, ThumbsUp, Brain, Sparkles } from 'lucide-react';
+import { analyzeWritingPace, type AnalyzeWritingPaceOutput } from '@/ai/flows/analyze-writing-pace';
+import { suggestBreakPoint, type SuggestBreakPointOutput } from '@/ai/flows/suggest-break-point';
+import { suggestStuckActivity, type SuggestStuckActivityOutput } from '@/ai/flows/suggest-stuck-activity';
+import { improveWriting, type ImproveWritingInput, type ImproveWritingOutput } from '@/ai/flows/improve-writing-flow';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { FocusSettingsState } from '@/lib/types';
@@ -23,7 +25,8 @@ interface AiPaceToolProps {
 type AiModalContent = 
   | { type: 'paceAnalysis'; data: AnalyzeWritingPaceOutput }
   | { type: 'breakSuggestion'; data: SuggestBreakPointOutput }
-  | { type: 'stuckActivity'; data: SuggestStuckActivityOutput };
+  | { type: 'stuckActivity'; data: SuggestStuckActivityOutput }
+  | { type: 'improveWriting'; data: ImproveWritingOutput };
 
 
 export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolProps) {
@@ -39,7 +42,7 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
     title: string, 
     successType: AiModalContent['type']
   ) => {
-    if (!currentText.trim() && (successType === 'paceAnalysis' || successType === 'breakSuggestion' || successType === 'stuckActivity')) {
+    if (!currentText.trim() && (successType === 'paceAnalysis' || successType === 'breakSuggestion' || successType === 'stuckActivity' || successType === 'improveWriting')) {
       toast({
         title: 'Text Required',
         description: 'Please write some text before using this AI tool.',
@@ -88,9 +91,17 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
 
   const handleStuckActivity = () => {
     handleGenericAiAction(
-      async () => suggestStuckActivity({ currentText }), // Can add problemDescription later
+      async () => suggestStuckActivity({ currentText }),
       'Stuck Point Activity',
       'stuckActivity'
+    );
+  };
+
+  const handleImproveWriting = () => {
+    handleGenericAiAction(
+      async () => improveWriting({ text: currentText }),
+      'Improve My Writing',
+      'improveWriting'
     );
   };
   
@@ -101,6 +112,10 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
         <CardDescription>Tools to analyze and improve your writing.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        <Button onClick={handleImproveWriting} disabled={isLoading || disabled} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+          {isLoading && currentDialogTitle === 'Improve My Writing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          Improve My Writing
+        </Button>
         <Button onClick={handleAnalyzePace} disabled={isLoading || disabled} className="w-full">
           {isLoading && currentDialogTitle === 'Writing Pace Analysis' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
           Analyze Pace & Style
@@ -119,14 +134,14 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
         )}
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{currentDialogTitle || 'AI Analysis'}</DialogTitle>
               <DialogDesc>
                 Here's what our AI suggests.
               </DialogDesc>
             </DialogHeader>
-            <ScrollArea className="h-[60vh] pr-4">
+            <ScrollArea className="h-[60vh] md:h-[70vh] pr-4">
               {isLoading && (
                 <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -162,6 +177,38 @@ export function AiPaceTool({ currentText, disabled, focusSettings }: AiPaceToolP
                   <AnalysisSection title="Activity Suggestion" content={modalContent.data.activitySuggestion} />
                   {modalContent.data.rationale && <AnalysisSection title="Rationale" content={modalContent.data.rationale} />}
                   {modalContent.data.estimatedTime && <p className="text-sm text-muted-foreground">Estimated time: {modalContent.data.estimatedTime}</p>}
+                </div>
+              )}
+              {modalContent?.type === 'improveWriting' && modalContent.data && (
+                <div className="space-y-6 py-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-primary mb-2">Original Text</h3>
+                    <Textarea
+                      readOnly
+                      value={modalContent.data.originalText}
+                      className="h-48 bg-muted/30 resize-none"
+                      aria-label="Original text"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-primary mb-2">Improved Text</h3>
+                    <Textarea
+                      readOnly
+                      value={modalContent.data.improvedText}
+                      className="h-48 resize-none"
+                      aria-label="Improved text"
+                    />
+                  </div>
+                  {modalContent.data.suggestions && modalContent.data.suggestions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-primary mb-2">Suggestions</h3>
+                      <ul className="list-disc pl-5 space-y-1 text-sm text-foreground">
+                        {modalContent.data.suggestions.map((suggestion, index) => (
+                          <li key={index}>{suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </ScrollArea>
