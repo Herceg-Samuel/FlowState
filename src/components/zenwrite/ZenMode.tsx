@@ -53,10 +53,10 @@ export function ZenMode({
     if (autoFocus && textareaRef.current && !disabled) {
       const activeElement = document.activeElement;
       // Check if focus is already inside an input, select, textarea, or a dialog/accordion content
-      const isInputFocused = 
-        activeElement && 
-        (activeElement.tagName === 'INPUT' || 
-         activeElement.tagName === 'TEXTAREA' || 
+      const isInputFocused =
+        activeElement &&
+        (activeElement.tagName === 'INPUT' ||
+         activeElement.tagName === 'TEXTAREA' ||
          activeElement.tagName === 'SELECT' ||
          activeElement.closest('[role="dialog"]') ||
          activeElement.closest('[data-state="open"]')); // General check for open accordions/dialogs
@@ -82,13 +82,13 @@ export function ZenMode({
   const writingAreaStyle = {
     fontFamily: typographySettings.fontFamily,
     fontSize: `${typographySettings.fontSize}px`,
-    lineHeight: typographySettings.fontSize ? `${Math.round(typographySettings.fontSize * 1.7)}px` : undefined, // Increased line height slightly
+    lineHeight: typographySettings.fontSize ? `${Math.round(typographySettings.fontSize * 1.7)}px` : undefined,
   };
 
   return (
     <div className={cn(
         'flex-grow flex flex-col p-2 rounded-lg shadow-inner bg-card',
-        isFullScreen ? 'h-full' : 'h-auto', // Allow auto height when not full screen to accommodate controls
+        isFullScreen ? 'h-full' : 'h-auto',
         isTextFocusMode && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
     >
@@ -99,7 +99,7 @@ export function ZenMode({
         onChange={handleChange}
         className={cn(
           'w-full flex-grow resize-none text-lg p-6 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder-muted-foreground',
-          isFullScreen ? 'min-h-full text-xl' : 'min-h-[calc(100%-5rem)]', // Ensure textarea takes most space above controls
+          isFullScreen ? 'min-h-full text-xl' : 'min-h-[160px]', // Adjusted min-height for non-fullscreen
           isTextFocusMode && 'tracking-wide'
         )}
         style={writingAreaStyle}
@@ -115,8 +115,8 @@ export function ZenMode({
             onValueChange={handleFontFamilyChange}
             disabled={disabled}
           >
-            <SelectTrigger 
-              className="h-8 text-xs truncate flex-grow" 
+            <SelectTrigger
+              className="h-8 text-xs truncate flex-grow"
               aria-label="Select font family"
             >
               <SelectValue placeholder="Select font" />
